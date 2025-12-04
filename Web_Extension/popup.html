@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>History Viewer</title>
+  <style>
+    body {
+      width: 600px;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+    }
+    h1 {
+      font-size: 18px;
+      margin: 0 0 10px 0;
+    }
+    #history-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #history-list li {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+      font-size: 12px;
+    }
+    #history-list a {
+      color: #1a0dab;
+      text-decoration: none;
+    }
+    #history-list a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Last 100 Visited URLs</h1>
+  <button id="export-btn">Export to JSON</button>
+  <ul id="history-list"></ul>
+  <script src="popup.js"></script>
+</body>
+</html>
