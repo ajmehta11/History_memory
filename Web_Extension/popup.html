@@ -1,41 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>History Viewer</title>
+  <meta charset="UTF-8" />
+  <title>History Uploader</title>
   <style>
     body {
-      width: 600px;
-      padding: 10px;
+      min-width: 260px;
       font-family: Arial, sans-serif;
+      padding: 10px;
     }
     h1 {
-      font-size: 18px;
+      font-size: 16px;
       margin: 0 0 10px 0;
     }
-    #history-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    #history-list li {
-      padding: 8px;
-      border-bottom: 1px solid #eee;
+    #status {
+      margin-top: 10px;
       font-size: 12px;
     }
-    #history-list a {
-      color: #1a0dab;
-      text-decoration: none;
-    }
-    #history-list a:hover {
-      text-decoration: underline;
+    button {
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h1>Last 100 Visited URLs</h1>
-  <button id="export-btn">Export to JSON</button>
-  <ul id="history-list"></ul>
+  <h1>History Uploader</h1>
+  <button id="upload-now">Upload now</button>
+  <div id="status"></div>
+
   <script src="popup.js"></script>
 </body>
 </html>

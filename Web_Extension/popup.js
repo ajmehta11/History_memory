@@ -1,31 +1,21 @@
-let historyData = [];
-
-chrome.history.search({
-  text: '',
-  maxResults: 1000,
-  startTime: Date.now() - (24 * 60 * 60 * 1000)
-}, (historyItems) => {
-  historyData = historyItems;
-  const historyList = document.getElementById('history-list');
-
-  historyItems.forEach((item) => {
-    const li = document.createElement('li');
-    const link = document.createElement('a');
-    link.href = item.url;
-    link.textContent = item.title || item.url;
-    link.target = '_blank';
-    li.appendChild(link);
-    historyList.appendChild(li);
+document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("upload-now");
+    const status = document.getElementById("status");
+  
+    btn.addEventListener("click", () => {
+      status.textContent = "Uploading history...";
+      chrome.runtime.sendMessage({ type: "SEND_HISTORY_NOW" }, (response) => {
+        if (chrome.runtime.lastError) {
+          status.textContent = "Error: " + chrome.runtime.lastError.message;
+          return;
+        }
+  
+        if (response && response.ok) {
+          status.textContent = "Upload successful.";
+        } else {
+          status.textContent = "Upload failed: " + (response && response.error ? response.error : "Unknown error");
+        }
+      });
+    });
   });
-});
-
-document.getElementById('export-btn').addEventListener('click', () => {
-  const dataStr = JSON.stringify(historyData, null, 2);
-  const blob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'history.json';
-  a.click();
-  URL.revokeObjectURL(url);
-});
+  
