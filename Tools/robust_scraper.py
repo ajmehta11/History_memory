@@ -103,7 +103,9 @@ def get_representative_image_from_soup(soup, url):
 
         lower_src = src.lower()
         junk_url_patterns = ['logo', 'icon', 'sprite', 'banner', 'ad', 'social',
-                           'avatar', 'badge', 'button', 'arrow', 'placeholder']
+                           'avatar', 'badge', 'button', 'arrow', 'placeholder',
+                           'transparent-pixel', 'grey-pixel', 'gray-pixel',
+                           'spacer', 'loading', '1x1']
         if any(pattern in lower_src for pattern in junk_url_patterns):
             score -= 50
 

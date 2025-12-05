@@ -85,17 +85,23 @@ def embed_image_from_url(url: str) -> list[float] | None:
     try:
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
-    except Exception:
-        return None
 
-    image = Image.open(BytesIO(resp.content)).convert("RGB")
-    inputs = clip_processor(images=image, return_tensors="pt").to(device)
+        image = Image.open(BytesIO(resp.content)).convert("RGB")
 
-    with torch.no_grad():
-        image_features = clip_model.get_image_features(**inputs)
+        if image.size[0] < 50 or image.size[1] < 50:
+            print(f"Skipping tiny image: {image.size}")
+            return None
 
-    image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
-    return image_features.squeeze().cpu().tolist() 
+        inputs = clip_processor(images=image, return_tensors="pt").to(device)
+
+        with torch.no_grad():
+            image_features = clip_model.get_image_features(**inputs)
+
+        image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
+        return image_features.squeeze().cpu().tolist()
+    except Exception as e:
+        print(f"Error embedding image: {e}")
+        return None 
 
 
 
@@ -173,12 +179,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Load products from file
     print(f"Loading products from {args.file}...")
     with open(args.file, 'r') as f:
         products = json.load(f)
 
     print(f"Loaded {len(products)} products\n")
 
-    # Upload to Azure AI Search
     ingest_products_batch(products)
