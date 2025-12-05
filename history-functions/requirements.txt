@@ -2,5 +2,33 @@
 # Ref: aka.ms/functions-azure-monitor-python
 # azure-monitor-opentelemetry
 
+# Azure Functions
 azure-functions
 
+# Azure Storage for blob upload
+azure-storage-blob
+
+# Azure AI Search
+azure-search-documents
+azure-core
+
+# OpenAI for LLM calls
+openai
+
+# Web scraping dependencies
+beautifulsoup4
+cloudscraper
+playwright
+selenium
+webdriver-manager
+
+# Image processing
+Pillow
+pytesseract
+
+# ML/AI for embeddings
+transformers
+torch
+
+# General utilities
+requests
