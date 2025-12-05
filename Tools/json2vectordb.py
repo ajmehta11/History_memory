@@ -140,34 +140,45 @@ def ingest_product_to_azure_search(product: dict):
 
 
 def ingest_products_batch(products: list[dict]):
-    for product in products:
+    total = len(products)
+    successful = 0
+    failed = 0
+
+    for idx, product in enumerate(products, 1):
+        print(f"\n[{idx}/{total}] Processing: {product.get('product_name', 'Unknown')}")
         try:
             ingest_product_to_azure_search(product)
+            successful += 1
         except Exception as e:
-            print(f"Error ingesting product: {e}")
+            failed += 1
+            print(f"✗ Error ingesting product: {e}")
+
+    print(f"\n{'='*80}")
+    print(f"Batch upload complete: {successful} successful, {failed} failed out of {total} total")
+    print(f"{'='*80}")
 
 
 
 if __name__ == "__main__":
-    sample_product = {
-        "is_product": "Yes",
-        "product_name": "Argentina 25/26 Home Jersey Messi Alvarez Martinez S-4XL",
-        "Color": "Blue/White",
-        "Brand": "Adidas",
-        "price": "US $45.00",
-        "currency": "USD",
-        "rating": None,
-        "rating_count": None,
-        "description": "• Sizes: Small–4XL.",
-        "Category": "Clothing",
-        "additional_attributes": {
-            "Size": "S-4XL",
-            "Condition": "Used"
-        },
-        "url": "https://www.ebay.com/itm/406355466405",
-        "lastVisitTime": None,
-        "original_title": "Argentina 25/26 Home Jersey Messi Alvarez Martinez S-4XL | eBay",
-        "main_image": "https://i.ebayimg.com/images/g/VPgAAeSwspRpDDah/s-l400.jpg"
-    }
+    import argparse
 
-    ingest_product_to_azure_search(sample_product)
+    parser = argparse.ArgumentParser(
+        description="Upload products from JSON file to Azure AI Search"
+    )
+    parser.add_argument(
+        "--file",
+        default="my_products.json",
+        help="Path to JSON file containing products (default: my_products.json)"
+    )
+
+    args = parser.parse_args()
+
+    # Load products from file
+    print(f"Loading products from {args.file}...")
+    with open(args.file, 'r') as f:
+        products = json.load(f)
+
+    print(f"Loaded {len(products)} products\n")
+
+    # Upload to Azure AI Search
+    ingest_products_batch(products)
