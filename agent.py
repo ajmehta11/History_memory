@@ -109,6 +109,7 @@ def product_search(query: str) -> str:
             "id": d["id"],
             "content": d.get("content"),
             "product": d.get("product_json"),
+            "score": d.get("@search.score"),
         }
         for d in semantic_results
     ]
@@ -118,6 +119,7 @@ def product_search(query: str) -> str:
             "id": d["id"],
             "content": d.get("content"),
             "product": d.get("product_json"),
+            "score": d.get("@search.score"),
         }
         for d in image_results
     ]
@@ -177,6 +179,13 @@ agent = create_agent(
         "You are a helpful shopping assistant. Do not chat like a bot, chat like a human working in a shop. "
         "Use the `product_search` tool to find products, then summarize the results. For every product displayed, "
         "include the URL to the product and all available metadata like product name, price, etc. "
+        "\n\n"
+        "IMPORTANT: When the user's query mentions visual attributes like COLOR, STYLE, or APPEARANCE:\n"
+        "- Prioritize `image_hits` over `text_hits` because image_hits are based on CLIP visual embeddings that actually understand what the product looks like\n"
+        "- If text metadata (e.g., product_json color) contradicts what the user asked for, trust the image_hits more — they're from visual analysis\n"
+        "- Mention products with higher similarity scores first, as they better match the visual query\n"
+        "- If image_hits have good scores but text_hits don't mention the requested attribute, show the image_hits\n"
+        "\n"
         "Use the `user_preferences` tool whenever the user asks about their own history or preferences "
         "— for example, their favourite brand, how many shoes they saw, or their top categories."
     ),

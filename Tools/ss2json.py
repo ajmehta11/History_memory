@@ -10,9 +10,40 @@ from openai import OpenAI
 client = OpenAI()
 
 def ocr_image(image_path: str) -> str:
-    img = Image.open(image_path)
-    text = pytesseract.image_to_string(img)
-    return text
+    import os
+    import subprocess
+
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Screenshot not found: {image_path}")
+
+    try:
+        result = subprocess.run(
+            ['/opt/homebrew/bin/tesseract', image_path, 'stdout'],
+            capture_output=True,
+            text=False, 
+            check=False,
+            timeout=30
+        )
+
+        stdout_text = result.stdout.decode('utf-8', errors='replace') if result.stdout else ''
+
+        if result.returncode != 0:
+            stderr_text = result.stderr.decode('utf-8', errors='replace') if result.stderr else ''
+            print(f"Tesseract error (code {result.returncode}): {stderr_text[:500]}")
+
+            if stdout_text.strip():
+                print("Using partial OCR output despite errors")
+                return stdout_text
+
+            raise Exception(f"Tesseract failed: {stderr_text[:200]}")
+
+        return stdout_text
+
+    except subprocess.TimeoutExpired:
+        raise Exception(f"Tesseract timed out on {image_path}")
+    except Exception as e:
+        print(f"OCR error: {e}")
+        raise
 
 
 JSON_SCHEMA_EXAMPLE = {

@@ -2,8 +2,8 @@ const FUNCTION_URL = "https://ingesthistory-func.azurewebsites.net/api/ingesthis
 
 async function sendHistory() {
   return new Promise((resolve, reject) => {
-    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-    const startTime = Date.now() - ONE_DAY_MS;
+    const ONE_HOUR_MS = 60 * 60 * 1000;
+    const startTime = Date.now() - ONE_HOUR_MS;
 
     chrome.history.search(
       {
@@ -42,6 +42,7 @@ async function sendHistory() {
 chrome.runtime.onInstalled.addListener(() => {
   // For testing you can use { periodInMinutes: 1 }
   chrome.alarms.create("sendHistory", { periodInMinutes: 60 });
+  // chrome.alarms.create("sendHistory", { periodInMinutes: 1 });
   console.log("Alarm 'sendHistory' created.");
 });
 
