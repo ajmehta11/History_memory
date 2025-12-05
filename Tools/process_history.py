@@ -6,7 +6,7 @@ from scraping_pipeline import scrape_to_json
 from json2vectordb import ingest_product_to_azure_search
 
 
-def process_history(history_data, output_dir="/tmp/output"):
+def process_history(history_data, output_dir="/Users/aryanmehta/Desktop/History_memory/Tools/output"):
     """
     Process history data (list of URLs) through scraping pipeline
 
