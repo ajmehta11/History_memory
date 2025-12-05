@@ -59,7 +59,7 @@ def call_llm_smart(ocr_text: str, scraped_text: dict) -> dict:
     return json.loads(json_str)
 
 
-def scrape_to_json(url: str, output_dir="output"):
+def scrape_to_json(url: str, output_dir="output", last_visit_time=None):
     Path(output_dir).mkdir(exist_ok=True)
 
     print("\n==== STEP 1: Robust Scraping ====\n")
@@ -78,7 +78,7 @@ def scrape_to_json(url: str, output_dir="output"):
     enriched_json = {
         **final_json,
         "url": url,
-        "lastVisitTime": text_data.get("lastVisitTime"),
+        "lastVisitTime": last_visit_time,
         "original_title": text_data.get("title"),
         "main_image": main_image,
     }

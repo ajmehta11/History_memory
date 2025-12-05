@@ -97,12 +97,19 @@ def ingest_product_to_azure_search(product: dict):
     if product.get("main_image"):
         img_vec = embed_image_from_url(product["main_image"])
 
-    doc_id = product.get("url") or product.get("product_name")
+    # Use deterministic ID based on URL for deduplication
+    # Same URL will always get the same ID, replacing old entries
+    url = product.get("url")
+    if url:
+        doc_id = str(uuid.uuid5(uuid.NAMESPACE_URL, url))
+    else:
+        # Fallback to random UUID if no URL
+        doc_id = str(uuid.uuid4())
 
     doc = {
-        "id": str(uuid.uuid4()),
+        "id": doc_id,
         "content": content_text,
-        "product_json": json.dumps(product),   
+        "product_json": json.dumps(product),
         "text_vector": text_vec,
     }
 
