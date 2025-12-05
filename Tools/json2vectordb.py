@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from io import BytesIO
 
 import requests
@@ -14,7 +15,6 @@ from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 
 
-#CONFIG 
 
 AZURE_SEARCH_ENDPOINT = os.environ["AZURE_SEARCH_ENDPOINT"]
 AZURE_SEARCH_INDEX = os.environ["AZURE_SEARCH_INDEX"]
@@ -36,7 +36,21 @@ search_client = SearchClient(
 )
 
 
-#  EMBEDDING  
+
+def parse_price(price_str: str) -> float | None:
+    if not price_str:
+        return None
+    match = re.search(r'[\d,]+\.?\d*', str(price_str).replace(',', ''))
+    return float(match.group()) if match else None
+
+
+def parse_colors(color_str: str) -> list[str]:
+    if not color_str:
+        return []
+    colors = re.split(r'[/,]', color_str)
+    return [c.strip() for c in colors if c.strip()]
+
+
 
 def build_text_from_product(p: dict) -> str:
     parts = []
@@ -56,8 +70,6 @@ def build_text_from_product(p: dict) -> str:
         parts.append(f"Attributes: {json.dumps(p['additional_attributes'])}")
     if p.get("original_title"):
         parts.append(f"Original title: {p['original_title']}")
-    # if p.get("url"):
-    #     parts.append(f"URL: {p['url']}")
     return "\n".join(parts)
 
 
@@ -66,7 +78,7 @@ def embed_text(text: str) -> list[float]:
         model="text-embedding-3-small",
         input=text,
     )
-    return resp.data[0].embedding  
+    return resp.data[0].embedding
 
 
 def embed_image_from_url(url: str) -> list[float] | None:
@@ -86,31 +98,36 @@ def embed_image_from_url(url: str) -> list[float] | None:
     return image_features.squeeze().cpu().tolist() 
 
 
-#  MAIN FUNCTION 
 
 def ingest_product_to_azure_search(product: dict):
     content_text = build_text_from_product(product)
-
     text_vec = embed_text(content_text)
 
     img_vec = None
     if product.get("main_image"):
         img_vec = embed_image_from_url(product["main_image"])
 
-    # Use deterministic ID based on URL for deduplication
-    # Same URL will always get the same ID, replacing old entries
     url = product.get("url")
     if url:
         doc_id = str(uuid.uuid5(uuid.NAMESPACE_URL, url))
     else:
-        # Fallback to random UUID if no URL
         doc_id = str(uuid.uuid4())
+
+    attrs = product.get("additional_attributes", {})
 
     doc = {
         "id": doc_id,
         "content": content_text,
         "product_json": json.dumps(product),
         "text_vector": text_vec,
+        
+        "product_name": product.get("product_name"),
+        "brand": product.get("Brand"),
+        "category": product.get("Category"),
+        "colors": parse_colors(product.get("Color")),
+        "price": parse_price(product.get("price")),
+        "size": attrs.get("Size"),
+        "condition": attrs.get("Condition"),
     }
 
     if img_vec is not None:
@@ -118,30 +135,39 @@ def ingest_product_to_azure_search(product: dict):
 
     result = search_client.upload_documents(documents=[doc])
     print("Upload result:", result)
+    return result
 
 
-#  EXAMPLE 
+
+def ingest_products_batch(products: list[dict]):
+    for product in products:
+        try:
+            ingest_product_to_azure_search(product)
+        except Exception as e:
+            print(f"Error ingesting product: {e}")
+
+
 
 if __name__ == "__main__":
     sample_product = {
-  "is_product": "Yes",
-  "product_name": "Argentina 25/26 Home Jersey Messi Alvarez Martinez S-4XL",
-  "Color": None,
-  "Brand": None,
-  "price": "US $45.00",
-  "currency": "USD",
-  "rating": None,
-  "rating_count": None,
-  "description": "• Sizes: Small–4XL.",
-  "Category": "Clothing",
-  "additional_attributes": {
-    "Size": "S-4XL",
-    "Condition": "Used"
-  },
-  "url": "https://www.ebay.com/itm/406355466405?itmprp=encpd%3AAQAKAAABkNSQ2wRUFL4S6r8jpJZpLY0CfRQJHyhhEcn9%2Fh4NIa4V5l%2BioVkkTld5evG5bQNaRpLubxccssYWVBQHFqJl1kNhCcsPY7p5skWWObw76zIVqTC24aiAWOOJCtbHMkV3CSrgHECuaNrJwu49wAYl8fuulkS0wpOhWw6%2FTukDtUsVv4KEDYrgbHCE4d6m8eif9tLLRJBZByTdNHTxjZ7ZM8F90iu%2FrmKeDBt8GYRtdX1y9n%2F9dL432NdKrofyK1ZGkfYK44moJfUpdqi8T5rrGn%2B%2FSu%2Bfzmm191BwjWxHTg77mZXlNYxOkgYSijUogz9mjpWt8bAdUlybSjFdiWNNd0TjMvNQgKQY9Mwsd3FAZfkYc9zg6KoP4YMbPj%2BKmayLmctotNAsBY7gWrHSAxPubIPHqlnMsYMyiC5ZolvzlJta9ImNnKgcr8FYGxXG%2BRrDSgfCfa3%2FYUROxlD7rUlFCmXtWww0JQwdnAnB23mq6gLTWIGm6pLPaP%2BJ0mhktBuIU6FnNuj3n4EBoSAoUtR5gmA%3D&itmmeta=wwHmKhYwY%2Fjx0DQwMUtCSzhFV0hHNVBWWEIzUU4xWDY5RE5GNDQwMUtCSzhFVzlTVFI2VDdXUDRLQ1Y3UTFYQrC4DA%3D%3D",
-  "lastVisitTime": None,
-  "original_title": "Argentina 25/26 Home Jersey Messi Alvarez Martinez S-4XL | eBay",
-  "main_image": "https://i.ebayimg.com/images/g/VPgAAeSwspRpDDah/s-l400.jpg"
-}
+        "is_product": "Yes",
+        "product_name": "Argentina 25/26 Home Jersey Messi Alvarez Martinez S-4XL",
+        "Color": "Blue/White",
+        "Brand": "Adidas",
+        "price": "US $45.00",
+        "currency": "USD",
+        "rating": None,
+        "rating_count": None,
+        "description": "• Sizes: Small–4XL.",
+        "Category": "Clothing",
+        "additional_attributes": {
+            "Size": "S-4XL",
+            "Condition": "Used"
+        },
+        "url": "https://www.ebay.com/itm/406355466405",
+        "lastVisitTime": None,
+        "original_title": "Argentina 25/26 Home Jersey Messi Alvarez Martinez S-4XL | eBay",
+        "main_image": "https://i.ebayimg.com/images/g/VPgAAeSwspRpDDah/s-l400.jpg"
+    }
 
     ingest_product_to_azure_search(sample_product)
