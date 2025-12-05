@@ -166,6 +166,12 @@ def scrape_with_cloudscraper(url):
         response = scraper.get(url, timeout=15)
         response.raise_for_status()
 
+        # Check if response is HTML
+        content_type = response.headers.get('Content-Type', '').lower()
+        if 'image/' in content_type:
+            print(f"✗ URL returned an image ({content_type}), not HTML")
+            return None
+
         soup = BeautifulSoup(response.content, 'html.parser')
         print("✓ Successfully fetched with cloudscraper")
 

@@ -3,6 +3,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+import io
 
 settings_path = Path(__file__).parent / "local.settings.json"
 if settings_path.exists():
@@ -41,6 +42,24 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
+# Silence Azure SDK verbose logging
+logging.getLogger("azure").setLevel(logging.WARNING)
+logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
+
+
+class LoggerWriter:
+    """Redirect print statements to logger"""
+    def __init__(self, logger, level):
+        self.logger = logger
+        self.level = level
+
+    def write(self, message):
+        if message and message.strip():
+            self.logger.log(self.level, message.strip())
+
+    def flush(self):
+        pass
 
 
 def get_pending_blobs(blob_service_client, container_name):
@@ -111,18 +130,25 @@ def update_user_preferences():
         logging.info("Updating user preferences")
         logging.info("="*80)
 
-        # Fetch products from Azure AI Search
-        logging.info("Fetching products from Azure AI Search...")
-        products = get_all_products()
-        logging.info(f"Retrieved {len(products)} products")
+        # Redirect stdout to logger
+        old_stdout = sys.stdout
+        sys.stdout = LoggerWriter(logging.getLogger(), logging.INFO)
 
-        if not products:
-            logging.info("No products found - skipping preference computation")
-            return
+        try:
+            # Fetch products from Azure AI Search
+            logging.info("Fetching products from Azure AI Search...")
+            products = get_all_products()
+            logging.info(f"Retrieved {len(products)} products")
 
-        # Compute preferences
-        logging.info("Computing preferences...")
-        preferences = compute_preferences(products)
+            if not products:
+                logging.info("No products found - skipping preference computation")
+                return
+
+            # Compute preferences
+            logging.info("Computing preferences...")
+            preferences = compute_preferences(products)
+        finally:
+            sys.stdout = old_stdout
 
         # Save to user_preferences.json
         output_path = Path(__file__).parent.parent / "Tools" / "user_preferences.json"
@@ -195,7 +221,14 @@ def main():
                 logging.info(f"Starting to process {len(history_data)} URL(s)...")
                 logging.info("This will scrape each URL and upload products to Azure AI Search")
 
-                result = process_history(history_data)
+                # Redirect stdout to logger so print statements appear in logs
+                old_stdout = sys.stdout
+                sys.stdout = LoggerWriter(logging.getLogger(), logging.INFO)
+
+                try:
+                    result = process_history(history_data)
+                finally:
+                    sys.stdout = old_stdout
 
                 logging.info("Processing complete")
                 logging.info(f"Stats - Total items: {result['stats']['total']}")

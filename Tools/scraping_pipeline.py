@@ -62,6 +62,11 @@ def call_llm_smart(ocr_text: str, scraped_text: dict) -> dict:
 def scrape_to_json(url: str, output_dir="output", last_visit_time=None):
     Path(output_dir).mkdir(exist_ok=True)
 
+    # Ensure URL has a protocol
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+        print(f"Added protocol to URL: {url}")
+
     print("\n==== STEP 1: Robust Scraping ====\n")
     main_image, all_images, text_data = robust_scrape(url)
 
