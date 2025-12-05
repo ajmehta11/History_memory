@@ -1,5 +1,6 @@
 import os
 import json
+from pathlib import Path  # NEW
 
 from langchain.tools import tool
 from langchain.agents import create_agent
@@ -130,6 +131,40 @@ def product_search(query: str) -> str:
     )
 
 
+@tool
+def user_preferences() -> str:
+    """
+    Load the current user's shopping preferences and history stats
+    from `user_preferences.json`.
+
+    Use this tool when the user asks about:
+    - Their favourite brand
+    - How many shoes/products they viewed
+    - Their top categories or brands
+    - Any question about their personal shopping history
+
+    Returns the JSON contents of `user_preferences.json` as a string.
+    """
+    prefs_path = Path(__file__).parent / "user_preferences.json"
+
+    if not prefs_path.exists():
+        return json.dumps(
+            {"error": "user_preferences.json not found"},
+            ensure_ascii=False,
+        )
+
+    try:
+        with open(prefs_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        return json.dumps(
+            {"error": f"Failed to load preferences: {str(e)}"},
+            ensure_ascii=False,
+        )
+
+    return json.dumps(data, ensure_ascii=False)
+
+
 llm = ChatOpenAI(
     model="gpt-4o-mini",
     temperature=0.2,
@@ -137,10 +172,13 @@ llm = ChatOpenAI(
 
 agent = create_agent(
     model=llm,
-    tools=[product_search],
+    tools=[product_search, user_preferences],
     system_prompt=(
         "You are a helpful shopping assistant. Do not chat like a bot, chat like a human working in a shop. "
-        "Use the `product_search` tool to find products, then summarize the results. For every product displayed, include the URL to the product. Also include all other available metadata like product name, price, etc.."
+        "Use the `product_search` tool to find products, then summarize the results. For every product displayed, "
+        "include the URL to the product and all available metadata like product name, price, etc. "
+        "Use the `user_preferences` tool whenever the user asks about their own history or preferences "
+        "— for example, their favourite brand, how many shoes they saw, or their top categories."
     ),
 )
 
